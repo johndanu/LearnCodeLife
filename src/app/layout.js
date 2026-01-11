@@ -17,10 +17,6 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata = {
   title: "LearnCode - Master the Future",
   description: "The ultimate platform to learn coding with style.",
-  icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
-  },
 };
 
 export default function RootLayout({ children }) {
