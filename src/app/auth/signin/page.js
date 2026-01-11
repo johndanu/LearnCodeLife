@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Suspense } from "react";
 
 function SignInButton() {
@@ -51,6 +52,18 @@ export default function SignIn() {
 
             <div className="container relative z-10 px-6 text-center max-w-md mx-auto">
                 <div className="bg-[hsl(var(--surface))] border border-[hsl(var(--secondary))] rounded-2xl p-8 shadow-xl">
+                    {/* Logo */}
+                    <div className="mb-6 flex justify-center">
+                        <Image 
+                            src="/logo.png" 
+                            alt="LearnCode Logo" 
+                            width={80} 
+                            height={80} 
+                            className="w-20 h-20 rounded-xl shadow-lg"
+                            priority
+                        />
+                    </div>
+                    
                     <h1 className="text-3xl font-bold tracking-tight mb-2">
                         Welcome Back
                     </h1>

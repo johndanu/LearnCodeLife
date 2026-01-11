@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import Header from '../components/Header';
 
 export default function LandingPage() {
@@ -14,20 +15,32 @@ export default function LandingPage() {
         </div>
 
         <div className="container relative z-10 px-4 sm:px-6 lg:px-8 text-center max-w-5xl mx-auto">
+          {/* Logo */}
+          <div className="mb-8 animate-in fade-in zoom-in-95">
+            <Image 
+              src="/logo.png" 
+              alt="LearnCode Logo" 
+              width={80} 
+              height={80} 
+              className="w-20 h-20 mx-auto rounded-2xl shadow-2xl"
+              priority
+            />
+          </div>
+
           <div className="mb-6 inline-block animate-in fade-in slide-in-from-top">
             <span className="px-4 py-1.5 rounded-full bg-surface/80 backdrop-blur-sm border border-secondary/30 text-xs font-semibold text-text-muted shadow-lg">
               ✨ v1.0 Public Beta
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-tight animate-in fade-in slide-in-from-bottom-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold tracking-tight mb-6 leading-tight animate-in fade-in slide-in-from-bottom-4">
             Transform Your Code into <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary-glow to-accent animate-gradient">
               Personalized Learning Paths
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg md:text-xl text-text-muted mb-12 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '0.1s' }}>
+          <p className="text-sm sm:text-base text-text-muted mb-12 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '0.1s' }}>
             Paste any code snippet and let AI generate a structured learning roadmap. 
             Discover concepts organized by difficulty levels with interactive explanations.
           </p>
@@ -35,7 +48,7 @@ export default function LandingPage() {
           <div className="flex justify-center items-center gap-4 animate-in fade-in zoom-in-95" style={{ animationDelay: '0.2s' }}>
             <Link
               href="/code"
-              className="group relative px-8 py-4 rounded-xl bg-gradient-to-r from-primary to-primary-glow text-white font-semibold text-base sm:text-lg hover:shadow-2xl hover:shadow-primary/50 hover:-translate-y-1 transition-all duration-300 shadow-lg overflow-hidden"
+              className="group relative px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-primary-glow text-white font-semibold text-sm sm:text-base hover:shadow-2xl hover:shadow-primary/50 hover:-translate-y-1 transition-all duration-300 shadow-lg overflow-hidden"
             >
               <span className="relative z-10 flex items-center gap-2">
                 Get Started

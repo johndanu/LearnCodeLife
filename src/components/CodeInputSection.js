@@ -14,8 +14,17 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
     const [analysisResult, setAnalysisResult] = useState(null);
     const [error, setError] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [activeTab, setActiveTab] = useState(0);
+    // Initialize activeTab from localStorage if available, otherwise default to 0
+    const [activeTab, setActiveTab] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const savedTab = localStorage.getItem("learnCode_activeTab");
+            return savedTab ? parseInt(savedTab, 10) : 0;
+        }
+        return 0;
+    });
     const [selectedTopic, setSelectedTopic] = useState(null);
+    const [selectedLevelName, setSelectedLevelName] = useState(null);
+    const [analysisId, setAnalysisId] = useState(null);
     const [toastMessage, setToastMessage] = useState("");
     const [showToast, setShowToast] = useState(false);
     const textareaRef = useRef(null);
@@ -46,6 +55,7 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
         if (initialData) {
             // Load from history
             setCode(initialData.code || "");
+            setAnalysisId(initialData._id || null);
             const newAnalysisResult = { 
                 result: initialData.learningPath,
                 title: initialData.title,
@@ -63,21 +73,16 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                 }
             });
             
-            // Preserve the current activeTab if it's valid for the new analysis
-            // Otherwise, use saved tab from localStorage, or default to 0
-            const currentTab = previousActiveTabRef.current;
+            // Use saved tab from localStorage if valid, otherwise default to 0
             const savedTab = localStorage.getItem("learnCode_activeTab");
             const savedTabIndex = savedTab ? parseInt(savedTab, 10) : null;
             
             let tabToSet = 0;
-            if (currentTab >= 0 && currentTab < levelCount) {
-                // Current tab is valid for new analysis, keep it
-                tabToSet = currentTab;
-            } else if (savedTabIndex !== null && savedTabIndex >= 0 && savedTabIndex < levelCount) {
-                // Current tab invalid, but saved tab is valid
+            if (savedTabIndex !== null && savedTabIndex >= 0 && savedTabIndex < levelCount) {
+                // Saved tab is valid for this analysis
                 tabToSet = savedTabIndex;
             } else {
-                // Default to 0
+                // Default to 0 if no valid saved tab
                 tabToSet = 0;
             }
             
@@ -95,12 +100,33 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
             if (savedCode) setCode(savedCode);
             if (savedResult) {
                 try {
-                    setAnalysisResult(JSON.parse(savedResult));
+                    const parsedResult = JSON.parse(savedResult);
+                    setAnalysisResult(parsedResult);
+                    
+                    // Parse the learning path to check how many levels exist
+                    const lines = (parsedResult?.result || "").split('\n');
+                    let levelCount = 0;
+                    lines.forEach(line => {
+                        if (line.trim().toLowerCase().startsWith('level')) {
+                            levelCount++;
+                        }
+                    });
+                    
+                    // Use saved tab if valid for this analysis
+                    if (savedTab) {
+                        const savedTabIndex = parseInt(savedTab, 10);
+                        if (savedTabIndex >= 0 && savedTabIndex < levelCount) {
+                            setActiveTab(savedTabIndex);
+                        } else {
+                            // Saved tab is invalid, default to 0
+                            setActiveTab(0);
+                        }
+                    }
                 } catch (e) {
                     console.error("Failed to parse saved result", e);
                 }
-            }
-            if (savedTab) {
+            } else if (savedTab) {
+                // No saved result, but we have a saved tab preference - use it
                 setActiveTab(parseInt(savedTab, 10));
             }
             setIsLoaded(true);
@@ -185,7 +211,7 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
         setIsAnalyzing(true);
         setAnalysisResult(null);
         setError(null);
-        setActiveTab(0);
+        // Don't reset activeTab here - will be set after analysis based on saved preference
 
         try {
             const res = await fetch('/api/analyze', {
@@ -222,7 +248,27 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                      language: data.language,
                      framework: data.framework
                  });
-                 setActiveTab(0);
+                 // Store analysis ID if provided
+                 if (data.id) {
+                     setAnalysisId(data.id);
+                 }
+                 
+                 // Parse the learning path to check how many levels exist
+                 const lines = (data.learningPath || "").split('\n');
+                 let levelCount = 0;
+                 lines.forEach(line => {
+                     if (line.trim().toLowerCase().startsWith('level')) {
+                         levelCount++;
+                     }
+                 });
+                 
+                 // Use saved tab from localStorage if valid, otherwise default to 0
+                 const savedTab = localStorage.getItem("learnCode_activeTab");
+                 const savedTabIndex = savedTab ? parseInt(savedTab, 10) : null;
+                 const tabToSet = (savedTabIndex !== null && savedTabIndex >= 0 && savedTabIndex < levelCount) 
+                     ? savedTabIndex 
+                     : 0;
+                 setActiveTab(tabToSet);
                  
                  // Trigger history refresh after successful analysis
                  if (onAnalysisComplete) {
@@ -283,7 +329,7 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
     const hasResults = parsedResults.length > 0;
 
     return (
-        <div className={`w-full ${hasResults ? 'max-w-7xl' : 'max-w-3xl'} mx-auto flex flex-col gap-8 transition-all duration-700 ease-in-out`}>
+        <div className={`w-full ${hasResults ? 'max-w-7xl' : 'max-w-3xl'} mx-auto flex flex-col gap-6 h-full transition-all duration-700 ease-in-out`}>
 
           
 
@@ -340,11 +386,11 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                 </div>
             ) : (
                 /* Split Layout - Code Left, Path Center Right */
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full animate-in fade-in slide-in-from-bottom-4 duration-700">
                     {/* Left: Code Section */}
-                    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-left duration-700">
+                    <div className="flex flex-col gap-4 h-full animate-in fade-in slide-in-from-left duration-700">
                            
-                        <div className="relative w-full rounded-xl bg-[#1e1e1e] border border-[hsl(var(--secondary))] shadow-inner overflow-hidden group h-full min-h-[400px]">
+                        <div className="relative w-full flex-1 rounded-xl bg-[#1e1e1e] border border-[hsl(var(--secondary))] shadow-inner overflow-hidden group min-h-[300px]">
                             {/* Fake Window Controls */}
                             <div className="flex gap-1.5 p-3 px-4 border-b border-white/10 bg-[#252526]">
                                 <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56] opacity-60"></div>
@@ -378,13 +424,13 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                     </div>
 
                     {/* Right: Learning Path Section */}
-                    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-right duration-700">
-                        <div className="border-t border-[hsl(var(--secondary))] pt-6">
+                    <div className="flex flex-col gap-4 h-full animate-in fade-in slide-in-from-right duration-700">
+                        <div className="border-t border-[hsl(var(--secondary))] pt-6 flex flex-col h-full">
                                 <h2 className="text-xl text-center font-semibold text-[hsl(var(--text-main))] mb-4">
                                     Your Learning Path
                                 </h2>
                             {/* Tab Navigation */}
-                            <div className="flex flex-wrap justify-center gap-2 mb-6">
+                            <div className="flex flex-wrap justify-center gap-2 mb-6 flex-shrink-0">
                                 {parsedResults.map((section, idx) => (
                                     <button
                                         key={idx}
@@ -403,9 +449,9 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                             </div>
 
                             {/* Tab Content */}
-                            <div className="min-h-[400px]">
+                            <div className="flex-1 overflow-y-auto min-h-0">
                                 {parsedResults[activeTab] && (
-                                    <div className="bg-[hsl(var(--surface))] rounded-xl border border-[hsl(var(--secondary))] p-8 shadow-sm animate-in fade-in zoom-in-95 duration-300 h-full">
+                                    <div className="bg-[hsl(var(--surface))] rounded-xl border border-[hsl(var(--secondary))] p-6 sm:p-8 shadow-sm animate-in fade-in zoom-in-95 duration-300 h-full">
                                         <h3 className="text-base font-semibold text-[hsl(var(--text-main))] mb-6 border-b border-[hsl(var(--secondary))] pb-4">
                                             {parsedResults[activeTab].title}
                                         </h3>
@@ -414,7 +460,10 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                                                 <li key={i} className="flex items-start gap-3 text-[hsl(var(--text-main))] text-sm leading-relaxed group">
                                                     <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))] flex-shrink-0 group-hover:scale-125 transition-transform" />
                                                     <button
-                                                        onClick={() => setSelectedTopic(item)}
+                                                        onClick={() => {
+                                                            setSelectedTopic(item);
+                                                            setSelectedLevelName(parsedResults[activeTab].title);
+                                                        }}
                                                         className="text-left hover:text-[hsl(var(--primary))] transition-colors cursor-pointer underline decoration-dashed decoration-transparent hover:decoration-[hsl(var(--primary))] underline-offset-2"
                                                     >
                                                         {item}
@@ -447,7 +496,14 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
             {selectedTopic && (
                 <TopicModal
                     topic={selectedTopic}
-                    onClose={() => setSelectedTopic(null)}
+                    levelName={selectedLevelName}
+                    analysisId={analysisId}
+                    language={analysisResult?.language || null}
+                    framework={analysisResult?.framework || null}
+                    onClose={() => {
+                        setSelectedTopic(null);
+                        setSelectedLevelName(null);
+                    }}
                 />
             )}
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
-export default function HistorySidebar({ onSelectHistory, onRefresh, onNewAnalysis }) {
+export default function HistorySidebar({ onSelectHistory, onRefresh, onNewAnalysis, isOpen = true, onClose }) {
     const { data: session } = useSession();
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -61,16 +61,43 @@ export default function HistorySidebar({ onSelectHistory, onRefresh, onNewAnalys
     };
 
     return (
-        <aside className="w-80 border-l border-secondary/20 bg-surface/50 backdrop-blur-sm flex flex-col h-full overflow-hidden">
+        <aside className={`
+            fixed lg:static
+            top-16 lg:top-0
+            right-0
+            w-full max-w-sm lg:w-80
+            h-[calc(100vh-4rem)] lg:h-full
+            border-l border-secondary/20 
+            bg-surface/95 lg:bg-surface/50 
+            backdrop-blur-md lg:backdrop-blur-sm 
+            flex flex-col 
+            overflow-hidden
+            z-40 lg:z-auto
+            transform transition-transform duration-300 ease-in-out
+            ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+            shadow-xl lg:shadow-none
+        `}>
             {/* Header */}
             <div className="p-4 border-b border-secondary/20 bg-surface/80 backdrop-blur-sm flex items-center justify-between sticky top-0 z-10">
                 <h2 className="text-lg font-bold text-text-main">History</h2>
-                <button
-                    onClick={onNewAnalysis}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:shadow-lg hover:shadow-primary/25 transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                    + New
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={onNewAnalysis}
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:shadow-lg hover:shadow-primary/25 transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                        + New
+                    </button>
+                    {/* Mobile Close Button */}
+                    <button
+                        onClick={onClose}
+                        className="lg:hidden p-1.5 rounded-lg hover:bg-surface-hover transition-colors"
+                        aria-label="Close history"
+                    >
+                        <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             {/* Content */}
@@ -100,33 +127,36 @@ export default function HistorySidebar({ onSelectHistory, onRefresh, onNewAnalys
                             <button
                                 key={item._id}
                                 onClick={() => onSelectHistory(item)}
-                                className="w-full p-4 rounded-xl border border-secondary/20 bg-surface/60 hover:bg-surface-hover hover:border-primary/50 transition-all duration-200 text-left group active:scale-[0.98] shadow-sm hover:shadow-md"
+                                className="w-full p-2 rounded-xl border border-secondary/20 bg-surface/60 hover:bg-surface-hover hover:border-primary/50 transition-all duration-200 text-left group active:scale-[0.98] shadow-sm hover:shadow-md"
                             >
-                                <div className="flex items-start justify-between gap-2 mb-2">
+                                <div className="flex items-start justify-between gap-2 mb-1">
                                     <h3 className="text-sm font-semibold text-text-main truncate flex-1 group-hover:text-primary transition-colors">
                                         {item.title || "Untitled Analysis"}
                                     </h3>
                                 </div>
-                                {(item.language || item.framework) && (
-                                    <div className="flex gap-2 mb-2 flex-wrap">
-                                        {item.language && (
-                                            <span className="px-2.5 py-1 text-xs font-medium rounded-md bg-secondary/30 text-text-muted border border-secondary/20">
-                                                {item.language}
-                                            </span>
-                                        )}
-                                        {item.framework && (
-                                            <span className="px-2.5 py-1 text-xs font-medium rounded-md bg-secondary/30 text-text-muted border border-secondary/20">
-                                                {item.framework}
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
+                                <div className="flex gap-2 flex-wrap">
                                 <p className="text-xs text-text-muted/70 flex items-center gap-1.5">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     {formatDate(item.createdAt)}
                                 </p>
+                                {(item.language || item.framework) && (
+                                        <>
+                                        {item.language && (
+                                            <span className="px-1 py-1 text-xs font-medium rounded-md bg-secondary/40 text-text-muted border border-secondary/20">
+                                                {item.language}
+                                            </span>
+                                        )}
+                                        {item.framework && (
+                                            <span className="px-1 py-1 text-xs font-medium rounded-md bg-secondary/30 text-text-muted border border-secondary/20">
+                                                {item.framework}
+                                            </span>
+                                        )}
+                                        </>
+                                )}
+                               
+                                </div>
                             </button>
                         ))}
                     </div>

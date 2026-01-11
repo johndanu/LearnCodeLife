@@ -2,6 +2,7 @@
 
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 
 export default function Header() {
@@ -31,12 +32,22 @@ export default function Header() {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
                 <Link 
                     href="/" 
-                    className="text-xl sm:text-2xl font-serif font-semibold text-text-main hover:text-primary transition-colors duration-200 group"
+                    className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-heading font-semibold text-text-main hover:text-primary transition-colors duration-200 group"
                 >
-                    <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                        LearnCode
+                    <Image 
+                        src="/logo.png" 
+                        alt="LearnCode Logo" 
+                        width={32} 
+                        height={32} 
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg"
+                        priority
+                    />
+                    <span>
+                        <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                            LearnCode
+                        </span>
+                        <span className="text-text-muted group-hover:text-primary transition-colors">.Life</span>
                     </span>
-                    <span className="text-text-muted group-hover:text-primary transition-colors">.Life</span>
                 </Link>
 
                 <nav className="flex items-center gap-4 sm:gap-6">

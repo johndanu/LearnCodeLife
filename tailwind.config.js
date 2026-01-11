@@ -8,6 +8,11 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        heading: ['var(--font-poppins)', 'sans-serif'],
+        body: ['var(--font-lora)', 'serif'],
+        mono: ['var(--font-jetbrains-mono)', 'monospace'],
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
