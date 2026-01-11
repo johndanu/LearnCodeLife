@@ -1,4 +1,5 @@
 import { Poppins, Lora, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import AuthProvider from "../components/AuthProvider";
 
@@ -37,6 +38,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           {children}
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
