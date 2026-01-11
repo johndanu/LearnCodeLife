@@ -1,5 +1,5 @@
 import { Poppins, Lora, JetBrains_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import AuthProvider from "../components/AuthProvider";
 
