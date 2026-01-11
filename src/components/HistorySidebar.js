@@ -61,60 +61,70 @@ export default function HistorySidebar({ onSelectHistory, onRefresh, onNewAnalys
     };
 
     return (
-        <aside className="w-80 border-l border-[hsl(var(--secondary))] bg-[hsl(var(--surface))] flex flex-col h-full overflow-hidden">
+        <aside className="w-80 border-l border-secondary/20 bg-surface/50 backdrop-blur-sm flex flex-col h-full overflow-hidden">
             {/* Header */}
-            <div className="p-4 border-b border-[hsl(var(--secondary))] flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[hsl(var(--text-main))]">History</h2>
+            <div className="p-4 border-b border-secondary/20 bg-surface/80 backdrop-blur-sm flex items-center justify-between sticky top-0 z-10">
+                <h2 className="text-lg font-bold text-text-main">History</h2>
                 <button
                     onClick={onNewAnalysis}
-                    className="px-3 py-1.5 text-xs rounded-lg bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary-glow))] transition-colors"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:shadow-lg hover:shadow-primary/25 transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                    New
+                    + New
                 </button>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-secondary/30 scrollbar-track-transparent">
                 {loading ? (
-                    <div className="p-4 text-center text-[hsl(var(--text-muted))] text-sm">
-                        Loading...
+                    <div className="p-8 text-center">
+                        <div className="inline-block w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
+                        <p className="text-text-muted text-sm">Loading...</p>
                     </div>
                 ) : error ? (
-                    <div className="p-4 text-center text-red-500 text-sm">
+                    <div className="p-4 m-4 rounded-lg bg-red-50/50 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/50 text-red-600 dark:text-red-400 text-sm text-center">
                         {error}
                     </div>
                 ) : history.length === 0 ? (
-                    <div className="p-4 text-center text-[hsl(var(--text-muted))] text-sm">
-                        No analysis history yet
+                    <div className="p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary/20 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <p className="text-text-muted text-sm">No analysis history yet</p>
+                        <p className="text-text-muted/70 text-xs mt-1">Start analyzing code to see your history</p>
                     </div>
                 ) : (
-                    <div className="p-2">
+                    <div className="p-3 space-y-2">
                         {history.map((item) => (
                             <button
                                 key={item._id}
                                 onClick={() => onSelectHistory(item)}
-                                className="w-full p-3 mb-2 rounded-lg border border-[hsl(var(--secondary))] bg-[hsl(var(--surface))] hover:bg-[hsl(var(--surface-hover))] hover:border-[hsl(var(--primary))] transition-all text-left group"
+                                className="w-full p-4 rounded-xl border border-secondary/20 bg-surface/60 hover:bg-surface-hover hover:border-primary/50 transition-all duration-200 text-left group active:scale-[0.98] shadow-sm hover:shadow-md"
                             >
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                    <h3 className="text-sm font-medium text-[hsl(var(--text-main))] truncate flex-1 group-hover:text-[hsl(var(--primary))] transition-colors">
+                                <div className="flex items-start justify-between gap-2 mb-2">
+                                    <h3 className="text-sm font-semibold text-text-main truncate flex-1 group-hover:text-primary transition-colors">
                                         {item.title || "Untitled Analysis"}
                                     </h3>
                                 </div>
                                 {(item.language || item.framework) && (
                                     <div className="flex gap-2 mb-2 flex-wrap">
                                         {item.language && (
-                                            <span className="px-2 py-0.5 text-xs rounded bg-[hsl(var(--secondary))] text-[hsl(var(--text-muted))]">
+                                            <span className="px-2.5 py-1 text-xs font-medium rounded-md bg-secondary/30 text-text-muted border border-secondary/20">
                                                 {item.language}
                                             </span>
                                         )}
                                         {item.framework && (
-                                            <span className="px-2 py-0.5 text-xs rounded bg-[hsl(var(--secondary))] text-[hsl(var(--text-muted))]">
+                                            <span className="px-2.5 py-1 text-xs font-medium rounded-md bg-secondary/30 text-text-muted border border-secondary/20">
                                                 {item.framework}
                                             </span>
                                         )}
                                     </div>
                                 )}
-                                <p className="text-xs text-[hsl(var(--text-muted))]">
+                                <p className="text-xs text-text-muted/70 flex items-center gap-1.5">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
                                     {formatDate(item.createdAt)}
                                 </p>
                             </button>
