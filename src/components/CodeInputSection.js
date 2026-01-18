@@ -29,7 +29,6 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
     const [showToast, setShowToast] = useState(false);
     const textareaRef = useRef(null);
     const hasResetRef = useRef(false);
-    const previousActiveTabRef = useRef(0);
 
     const MAX_CHARS = 500;
 
@@ -43,10 +42,9 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
             setCode("");
             setAnalysisResult(null);
             setError(null);
-            setActiveTab(0);
+            // Don't reset activeTab here - keep the user's preference
             localStorage.removeItem("learnCode_input");
             localStorage.removeItem("learnCode_result");
-            localStorage.removeItem("learnCode_activeTab");
             setIsLoaded(true);
             hasResetRef.current = true;
             return;
@@ -56,14 +54,14 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
             // Load from history
             setCode(initialData.code || "");
             setAnalysisId(initialData._id || null);
-            const newAnalysisResult = { 
+            const newAnalysisResult = {
                 result: initialData.learningPath,
                 title: initialData.title,
                 language: initialData.language,
                 framework: initialData.framework
             };
             setAnalysisResult(newAnalysisResult);
-            
+
             // Parse the learning path to check how many levels exist
             const lines = (initialData.learningPath || "").split('\n');
             let levelCount = 0;
@@ -72,23 +70,17 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                     levelCount++;
                 }
             });
-            
+
             // Use saved tab from localStorage if valid, otherwise default to 0
             const savedTab = localStorage.getItem("learnCode_activeTab");
-            const savedTabIndex = savedTab ? parseInt(savedTab, 10) : null;
-            
-            let tabToSet = 0;
-            if (savedTabIndex !== null && savedTabIndex >= 0 && savedTabIndex < levelCount) {
-                // Saved tab is valid for this analysis
-                tabToSet = savedTabIndex;
+            const savedTabIndex = savedTab ? parseInt(savedTab, 10) : 0;
+
+            if (savedTabIndex >= 0 && savedTabIndex < levelCount) {
+                setActiveTab(savedTabIndex);
             } else {
-                // Default to 0 if no valid saved tab
-                tabToSet = 0;
+                setActiveTab(0);
             }
-            
-            setActiveTab(tabToSet);
-            previousActiveTabRef.current = tabToSet;
-            
+
             setIsLoaded(true);
             hasResetRef.current = false;
         } else if (!hasResetRef.current) {
@@ -102,36 +94,28 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                 try {
                     const parsedResult = JSON.parse(savedResult);
                     setAnalysisResult(parsedResult);
-                    
-                    // Parse the learning path to check how many levels exist
-                    const lines = (parsedResult?.result || "").split('\n');
-                    let levelCount = 0;
-                    lines.forEach(line => {
-                        if (line.trim().toLowerCase().startsWith('level')) {
-                            levelCount++;
-                        }
-                    });
-                    
-                    // Use saved tab if valid for this analysis
+
                     if (savedTab) {
                         const savedTabIndex = parseInt(savedTab, 10);
+                        // Check if tab is valid for this result
+                        const lines = (parsedResult?.result || "").split('\n');
+                        let levelCount = 0;
+                        lines.forEach(line => {
+                            if (line.trim().toLowerCase().startsWith('level')) levelCount++;
+                        });
+
                         if (savedTabIndex >= 0 && savedTabIndex < levelCount) {
                             setActiveTab(savedTabIndex);
-                        } else {
-                            // Saved tab is invalid, default to 0
-                            setActiveTab(0);
                         }
                     }
                 } catch (e) {
                     console.error("Failed to parse saved result", e);
                 }
             } else if (savedTab) {
-                // No saved result, but we have a saved tab preference - use it
                 setActiveTab(parseInt(savedTab, 10));
             }
             setIsLoaded(true);
         } else {
-            // Reset case - ensure everything is cleared
             setIsLoaded(true);
         }
     }, [initialData]);
@@ -154,7 +138,6 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
     useEffect(() => {
         if (!isLoaded) return;
         localStorage.setItem("learnCode_activeTab", activeTab);
-        previousActiveTabRef.current = activeTab;
     }, [activeTab, isLoaded]);
 
 
@@ -173,10 +156,10 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
 
         if (totalLength > MAX_CHARS) {
             e.preventDefault();
-            
+
             // Calculate how much can be pasted
             const allowedLength = MAX_CHARS - currentLength;
-            
+
             if (allowedLength > 0) {
                 // Paste only what fits
                 const truncatedText = pastedText.substring(0, allowedLength);
@@ -226,7 +209,7 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                 // Response is not JSON, likely an HTML error page
                 const text = await res.text();
                 console.error('Non-JSON response received:', text.substring(0, 200));
-                
+
                 if (res.status === 401) {
                     // Redirect to sign-in if authentication is required
                     router.push("/auth/signin?callbackUrl=/code");
@@ -241,42 +224,42 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
 
             const data = await res.json();
             if (res.ok) {
-                 // Transform response to match expected format
-                 setAnalysisResult({ 
-                     result: data.learningPath,
-                     title: data.title,
-                     language: data.language,
-                     framework: data.framework
-                 });
-                 // Store analysis ID if provided
-                 if (data.id) {
-                     setAnalysisId(data.id);
-                 }
-                 
-                 // Parse the learning path to check how many levels exist
-                 const lines = (data.learningPath || "").split('\n');
-                 let levelCount = 0;
-                 lines.forEach(line => {
-                     if (line.trim().toLowerCase().startsWith('level')) {
-                         levelCount++;
-                     }
-                 });
-                 
-                 // Use saved tab from localStorage if valid, otherwise default to 0
-                 const savedTab = localStorage.getItem("learnCode_activeTab");
-                 const savedTabIndex = savedTab ? parseInt(savedTab, 10) : null;
-                 const tabToSet = (savedTabIndex !== null && savedTabIndex >= 0 && savedTabIndex < levelCount) 
-                     ? savedTabIndex 
-                     : 0;
-                 setActiveTab(tabToSet);
-                 
-                 // Trigger history refresh after successful analysis
-                 if (onAnalysisComplete) {
-                     // Small delay to ensure DB save is complete
-                     setTimeout(() => {
-                         onAnalysisComplete();
-                     }, 500);
-                 }
+                // Transform response to match expected format
+                setAnalysisResult({
+                    result: data.learningPath,
+                    title: data.title,
+                    language: data.language,
+                    framework: data.framework
+                });
+                // Store analysis ID if provided
+                if (data.id) {
+                    setAnalysisId(data.id);
+                }
+
+                // Parse the learning path to check how many levels exist
+                const lines = (data.learningPath || "").split('\n');
+                let levelCount = 0;
+                lines.forEach(line => {
+                    if (line.trim().toLowerCase().startsWith('level')) {
+                        levelCount++;
+                    }
+                });
+
+                // Use saved tab from localStorage if valid, otherwise default to 0
+                const savedTab = localStorage.getItem("learnCode_activeTab");
+                const savedTabIndex = savedTab ? parseInt(savedTab, 10) : null;
+                const tabToSet = (savedTabIndex !== null && savedTabIndex >= 0 && savedTabIndex < levelCount)
+                    ? savedTabIndex
+                    : 0;
+                setActiveTab(tabToSet);
+
+                // Trigger history refresh after successful analysis
+                if (onAnalysisComplete) {
+                    // Small delay to ensure DB save is complete
+                    setTimeout(() => {
+                        onAnalysisComplete();
+                    }, 500);
+                }
             } else {
                 // Handle 401 specifically by redirecting to sign-in
                 if (res.status === 401) {
@@ -331,12 +314,12 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
     return (
         <div className={`w-full ${hasResults ? 'max-w-7xl' : 'max-w-3xl'} mx-auto flex flex-col gap-6 h-full transition-all duration-700 ease-in-out`}>
 
-          
+
 
             {/* Conditional Layout: Split when results exist, centered when not */}
             {!hasResults ? (
                 /* Centered Layout - Input Only */
-                <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <section aria-label="Code Input" className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     <div className="relative w-full rounded-xl bg-[#1e1e1e] border border-[hsl(var(--secondary))] shadow-inner overflow-hidden group animate-in fade-in zoom-in-95 duration-500">
                         {/* Fake Window Controls for extra editor feel */}
                         <div className="flex gap-1.5 p-3 px-4 border-b border-white/10 bg-[#252526]">
@@ -383,13 +366,13 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                             {isAnalyzing ? "Analyzing..." : "What should I learn to understand this?"}
                         </button>
                     </div>
-                </div>
+                </section>
             ) : (
                 /* Split Layout - Code Left, Path Center Right */
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full animate-in fade-in slide-in-from-bottom-4 duration-700">
                     {/* Left: Code Section */}
-                    <div className="flex flex-col gap-4 h-full animate-in fade-in slide-in-from-left duration-700">
-                           
+                    <section aria-label="Code Editor" className="flex flex-col gap-4 h-full animate-in fade-in slide-in-from-left duration-700">
+
                         <div className="relative w-full flex-1 rounded-xl bg-[#1e1e1e] border border-[hsl(var(--secondary))] shadow-inner overflow-hidden group min-h-[300px]">
                             {/* Fake Window Controls */}
                             <div className="flex gap-1.5 p-3 px-4 border-b border-white/10 bg-[#252526]">
@@ -397,8 +380,8 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                                 <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] opacity-60"></div>
                                 <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f] opacity-60"></div>
                                 <div className="ml-auto text-[10px] text-white/30 font-mono">{analysisResult?.title || "Your Code Analysis"}  {analysisResult?.title && (analysisResult?.language || analysisResult?.framework) ? " | " : ""}
-                                {analysisResult?.language || ""} {analysisResult?.language && analysisResult?.framework ? " | " : ""}
-                                {analysisResult?.framework || ""}</div>
+                                    {analysisResult?.language || ""} {analysisResult?.language && analysisResult?.framework ? " | " : ""}
+                                    {analysisResult?.framework || ""}</div>
                             </div>
 
                             <textarea
@@ -421,14 +404,14 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                                 {error}
                             </div>
                         )}
-                    </div>
+                    </section>
 
                     {/* Right: Learning Path Section */}
-                    <div className="flex flex-col gap-4 h-full animate-in fade-in slide-in-from-right duration-700">
+                    <article aria-label="Learning Roadmap" className="flex flex-col gap-4 h-full animate-in fade-in slide-in-from-right duration-700">
                         <div className="border-t border-[hsl(var(--secondary))] pt-6 flex flex-col h-full">
-                                <h2 className="text-xl text-center font-semibold text-[hsl(var(--text-main))] mb-4">
-                                    Your Learning Path
-                                </h2>
+                            <h2 className="text-xl text-center font-semibold text-[hsl(var(--text-main))] mb-4">
+                                Your Learning Path
+                            </h2>
                             {/* Tab Navigation */}
                             <div className="flex flex-wrap justify-center gap-2 mb-6 flex-shrink-0">
                                 {parsedResults.map((section, idx) => (
@@ -457,16 +440,38 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                                         </h3>
                                         <ul className="space-y-4">
                                             {parsedResults[activeTab].items.map((item, i) => (
-                                                <li key={i} className="flex items-start gap-3 text-[hsl(var(--text-main))] text-sm leading-relaxed group">
+                                                <li key={i} className="flex items-start gap-4 text-[hsl(var(--text-main))] text-sm leading-relaxed group">
                                                     <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[hsl(var(--primary))] flex-shrink-0 group-hover:scale-125 transition-transform" />
                                                     <button
                                                         onClick={() => {
                                                             setSelectedTopic(item);
                                                             setSelectedLevelName(parsedResults[activeTab].title);
                                                         }}
-                                                        className="text-left hover:text-[hsl(var(--primary))] transition-colors cursor-pointer underline decoration-dashed decoration-transparent hover:decoration-[hsl(var(--primary))] underline-offset-2"
+                                                        className="text-left flex items-center gap-2 hover:text-[hsl(var(--primary))] transition-all cursor-pointer group/btn"
                                                     >
-                                                        {item}
+                                                        <span className="underline decoration-dashed decoration-transparent group-hover/btn:decoration-[hsl(var(--primary))] underline-offset-4 transition-all pb-0.5">
+                                                            {item}
+                                                        </span>
+                                                        <div className="relative w-4 h-4 flex items-center justify-center flex-shrink-0">
+                                                            {/* Default: External Link Icon */}
+                                                            <svg
+                                                                className="absolute w-3.5 h-3.5 opacity-60 group-hover/btn:opacity-0 group-hover/btn:scale-50 transition-all duration-300 text-[hsl(var(--text-muted))]"
+                                                                fill="none"
+                                                                viewBox="0 0 24 24"
+                                                                stroke="currentColor"
+                                                            >
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                            </svg>
+                                                            {/* Hover: Arrow Icon */}
+                                                            <svg
+                                                                className="absolute w-3.5 h-3.5 opacity-0 scale-50 group-hover/btn:opacity-100 group-hover/btn:scale-100 group-hover/btn:translate-x-0.5 transition-all duration-300 text-primary"
+                                                                fill="none"
+                                                                viewBox="0 0 24 24"
+                                                                stroke="currentColor"
+                                                            >
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                                            </svg>
+                                                        </div>
                                                     </button>
                                                 </li>
                                             ))}
@@ -480,15 +485,19 @@ export default function CodeInputSection({ initialData = null, onAnalysisComplet
                             <button
                                 onClick={() => {
                                     setAnalysisResult(null);
+                                    setCode("");
+                                    setAnalysisId(null);
                                     localStorage.removeItem("learnCode_result");
+                                    localStorage.removeItem("learnCode_input");
                                     setActiveTab(0);
+                                    router.push('/code');
                                 }}
                                 className="text-xs text-[hsl(var(--text-muted))] hover:text-[hsl(var(--primary))] transition-colors"
                             >
                                 Clear Results
                             </button>
                         </div>
-                    </div>
+                    </article>
                 </div>
             )}
 

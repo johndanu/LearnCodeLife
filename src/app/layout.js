@@ -22,9 +22,77 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+// Helper function to get base URL for absolute URLs in metadata
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
+  return process.env.NODE_ENV === 'production' 
+    ? 'https://learncode.life' 
+    : 'http://localhost:3000';
+};
+
+const baseUrl = getBaseUrl();
+
 export const metadata = {
-  title: "LearnCode - Master the Future",
-  description: "The ultimate platform to learn coding with style.",
+  metadataBase: new URL(baseUrl),
+  title: {
+    template: '%s | LearnCode.life',
+    default: 'Explain My Code & Get a Roadmap | LearnCode.life',
+  },
+  description: 'Paste any code snippet and get a structured learning roadmap with AI-powered explanations. Discover programming concepts organized by difficulty levels with interactive explanations.',
+  keywords: [
+    'code analysis',
+    'learning path',
+    'code explainer',
+    'programming roadmap',
+    'code learning',
+    'AI code analysis',
+    'code education',
+    'programming tutorial',
+    'learn to code',
+    'code breakdown'
+  ],
+  authors: [{ name: 'LearnCode Team' }],
+  creator: 'LearnCode',
+  publisher: 'LearnCode',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  alternates: {
+    canonical: baseUrl,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: baseUrl,
+    siteName: 'LearnCode.life',
+    title: 'Explain My Code & Get a Roadmap | LearnCode.life',
+    description: 'Paste any code snippet and get a structured learning roadmap with AI-powered explanations. Discover programming concepts organized by difficulty levels.',
+    images: [
+      {
+        url: `${baseUrl}/logo.png`,
+        width: 1200,
+        height: 630,
+        alt: 'LearnCode.life - Code Logic Explainer and Learning Path Generator',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Explain My Code & Get a Roadmap | LearnCode.life',
+    description: 'Paste any code snippet and get a structured learning roadmap with AI-powered explanations.',
+    images: [`${baseUrl}/logo.png`],
+    creator: '@learncode',
+  },
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',

@@ -2,9 +2,45 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Header from '../components/Header';
 
+// Helper function to get base URL for absolute URLs
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
+  return process.env.NODE_ENV === 'production' 
+    ? 'https://learncode.life' 
+    : 'http://localhost:3000';
+};
+
 export default function LandingPage() {
+  const baseUrl = getBaseUrl();
+  
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "LearnCode.life",
+    "description": "Code Logic Explainer and Learning Path Generator",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "url": baseUrl,
+    "author": {
+      "@type": "Organization",
+      "name": "LearnCode"
+    }
+  };
+
   return (
-    <div className="h-screen flex flex-col bg-background text-text-main overflow-hidden">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div className="h-screen flex flex-col bg-background text-text-main overflow-hidden">
       <Header />
       <main className="flex-1 flex flex-col items-center justify-center relative selection:bg-primary/20 selection:text-text-main overflow-y-auto">
         {/* Decorative Background Elements */}
@@ -92,6 +128,7 @@ export default function LandingPage() {
         </footer>
       </main>
     </div>
+    </>
   );
 }
 

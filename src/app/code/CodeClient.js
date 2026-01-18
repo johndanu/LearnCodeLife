@@ -1,60 +1,48 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import CodeInputSection from "../../components/CodeInputSection";
 import Header from "../../components/Header";
 import HistorySidebar from "../../components/HistorySidebar";
 
-function CodePageContent() {
+function CodeClient({ children }) {
     const { data: session, status } = useSession();
     const router = useRouter();
-    const pathname = usePathname();
+    const params = useParams();
+    const [isPending, startTransition] = useTransition();
+
+    // The ID is now coming from the dynamic slug [[...slug]]
+    const analysisIdFromUrl = params.slug && params.slug.length > 0 ? params.slug[0] : null;
+
     const [selectedHistory, setSelectedHistory] = useState(null);
     const [refreshHistory, setRefreshHistory] = useState(null);
     const [resetCodeInput, setResetCodeInput] = useState(0);
-    const [analysisIdFromUrl, setAnalysisIdFromUrl] = useState(null);
     const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     // Close history on mobile when route changes
     useEffect(() => {
         setIsHistoryOpen(false);
-    }, [pathname]);
-
-    // Allow page to be accessed without authentication
-    // Authentication will be required when user tries to generate a learning path
-
-    // Extract ID from URL pathname
-    useEffect(() => {
-        const pathParts = pathname.split('/');
-        const idFromUrl = pathParts[pathParts.length - 1];
-        
-        if (pathname.startsWith('/code/') && idFromUrl && idFromUrl !== 'code') {
-            setAnalysisIdFromUrl(idFromUrl);
-        } else {
-            setAnalysisIdFromUrl(null);
-            if (pathname === '/code') {
-                setSelectedHistory(null);
-            }
-        }
-    }, [pathname]);
+    }, [analysisIdFromUrl]);
 
     // Fetch and select analysis when ID is in URL
     useEffect(() => {
-        const fetchAndSelectAnalysis = async () => {
+        const fetchAnalysis = async () => {
             if (!analysisIdFromUrl) {
+                setSelectedHistory(null);
                 setIsLoadingAnalysis(false);
                 return;
             }
-            
-            // Wait for auth status to be determined (not loading)
-            if (status === "loading") {
-                setIsLoadingAnalysis(true);
+
+            // If we already have this history loaded, don't fetch again
+            if (selectedHistory?._id === analysisIdFromUrl) {
                 return;
             }
-            
+
+            if (status === "loading") return;
+
             setIsLoadingAnalysis(true);
 
             // If not authenticated, redirect to sign in
@@ -66,21 +54,11 @@ function CodePageContent() {
 
             try {
                 const res = await fetch(`/api/code/${encodeURIComponent(analysisIdFromUrl)}`);
-                
+
                 if (!res.ok) {
-                    if (res.status === 401) {
-                        router.push(`/auth/signin?callbackUrl=${encodeURIComponent(`/code/${analysisIdFromUrl}`)}`);
-                        setIsLoadingAnalysis(false);
-                        return;
-                    }
                     if (res.status === 404) {
-                        // Analysis not found, redirect to base /code
                         router.push('/code');
-                        setIsLoadingAnalysis(false);
-                        return;
                     }
-                    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
-                    console.error("Failed to fetch analysis:", errorData.error);
                     setIsLoadingAnalysis(false);
                     return;
                 }
@@ -104,17 +82,15 @@ function CodePageContent() {
             }
         };
 
-        fetchAndSelectAnalysis();
-    }, [analysisIdFromUrl, status, router]);
-
-    // Show loading only briefly, then show page regardless of auth status
+        fetchAnalysis();
+    }, [analysisIdFromUrl, status]);
 
     return (
         <div className="h-screen flex flex-col bg-[hsl(var(--background))] text-[hsl(var(--text-main))] overflow-hidden">
             <Header />
 
             <div className="flex flex-1 overflow-hidden relative">
-                {/* Mobile History Toggle Button - Top Right */}
+                {/* Mobile History Toggle Button */}
                 {session && !isHistoryOpen && (
                     <button
                         onClick={() => setIsHistoryOpen(true)}
@@ -131,7 +107,7 @@ function CodePageContent() {
                 {/* Mobile Overlay */}
                 {isHistoryOpen && session && (
                     <div
-                        className="lg:hidden fixed top-16 inset-x-0 bottom-0 bg-black/50 backdrop-blur-sm z-30"
+                        className="lg:hidden fixed top-16 inset-x-0 bottom-0 bg-black/50 backdrop-blur-sm z-[90]"
                         onClick={() => setIsHistoryOpen(false)}
                     />
                 )}
@@ -139,31 +115,29 @@ function CodePageContent() {
                 {/* Main Content */}
                 <main className="flex-1 overflow-hidden relative flex flex-col h-full">
                     <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
-                        <div className="container relative z-10 h-full flex flex-col py-4 sm:py-6 px-4 sm:px-6">
-                            {/* Code Input Section */}
+                        <div className="container relative h-full flex flex-col py-4 sm:py-6 px-4 sm:px-6">
                             <div className="w-full flex-1 flex flex-col min-h-0 animate-in" style={{ animationDelay: "0.2s" }}>
-                                {isLoadingAnalysis && analysisIdFromUrl ? (
+                                {isLoadingAnalysis && !selectedHistory ? (
                                     <div className="flex flex-col items-center justify-center flex-1 py-12">
                                         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
                                         <p className="text-text-muted text-sm">Loading analysis...</p>
                                     </div>
                                 ) : (
-                                    <CodeInputSection 
-                                        key={`${resetCodeInput}-${selectedHistory?._id || 'new'}`}
-                                        initialData={selectedHistory} 
-                                        onAnalysisComplete={() => {
-                                            // Trigger history refresh after analysis completes
-                                            if (refreshHistory) {
-                                                refreshHistory(true);
-                                            }
-                                        }}
-                                    />
+                                    <div className={`w-full flex-1 flex flex-col ${isLoadingAnalysis ? 'opacity-50 pointer-events-none' : ''} transition-opacity duration-300`}>
+                                        <CodeInputSection
+                                            initialData={selectedHistory}
+                                            onAnalysisComplete={() => {
+                                                // Call registered silent refresh
+                                                if (refreshHistory) refreshHistory();
+                                            }}
+                                        />
+                                    </div>
                                 )}
+                                {children}
                             </div>
                         </div>
                     </div>
 
-                    {/* Fixed Footer */}
                     <footer className="w-full border-t border-secondary/20 bg-surface/80 backdrop-blur-sm py-3 px-4 sm:px-6 text-center text-xs text-[hsl(var(--text-muted))] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0">
                         <p>
                             Dev by johndanushan <span className="mx-2">•</span> Supported by lizris <span className="mx-2">•</span>
@@ -179,64 +153,23 @@ function CodePageContent() {
                     </footer>
                 </main>
 
-                {/* History Sidebar - Only show if authenticated */}
+                {/* History Sidebar */}
                 {session && (
-                    <HistorySidebar 
+                    <HistorySidebar
                         isOpen={isHistoryOpen}
                         onClose={() => setIsHistoryOpen(false)}
-                        onSelectHistory={async (item) => {
-                            // Close sidebar on mobile when item is selected
-                            setIsHistoryOpen(false);
-                            // Fetch full analysis data when item is selected
-                            const analysisId = item?._id || item?.id;
-                            
-                            if (!analysisId || typeof analysisId !== 'string') {
-                                console.error("No valid analysis ID found in item:", item);
-                                setSelectedHistory(null);
-                                router.push('/code');
-                                return;
-                            }
-
-                            try {
-                                const res = await fetch(`/api/code/${encodeURIComponent(analysisId)}`);
-                                
-                                if (!res.ok) {
-                                    const errorData = await res.json().catch(() => ({ error: 'Failed to parse error response' }));
-                                    console.error("Failed to fetch analysis:", errorData.error || `HTTP ${res.status}`);
-                                    return;
-                                }
-
-                                const data = await res.json();
-
-                                if (data.analysis) {
-                                    // Update state with full analysis data
-                                    setSelectedHistory({
-                                        _id: data.analysis._id,
-                                        code: data.analysis.code,
-                                        learningPath: data.analysis.learningPath,
-                                        title: data.analysis.title,
-                                        language: data.analysis.language,
-                                        framework: data.analysis.framework
-                                    });
-                                    
-                                    // Update URL using Next.js router for proper routing
-                                    router.push(`/code/${analysisId}`, { scroll: false });
-                                } else {
-                                    console.error("No analysis data in response:", data);
-                                }
-                            } catch (err) {
-                                console.error("Error fetching analysis:", err);
+                        onSelectHistory={(item) => {
+                            // Link handles navigation, we just handle the sidebar UI here
+                            if (window.innerWidth < 1024) {
+                                setIsHistoryOpen(false);
                             }
                         }}
                         onRefresh={(refreshFn) => setRefreshHistory(() => refreshFn)}
                         onNewAnalysis={() => {
-                            // Clear selected history
                             setSelectedHistory(null);
-                            // Reset URL to base /code using Next.js router
                             router.push('/code');
-                            // Mark that we're resetting
                             sessionStorage.setItem('codeInputReset', 'true');
-                            // Force complete reset by changing key (remounts component)
+                            // Still need to force reset for NEW analysis button
                             setResetCodeInput(prev => prev + 1);
                         }}
                     />
@@ -246,5 +179,4 @@ function CodePageContent() {
     );
 }
 
-export default CodePageContent;
-
+export default CodeClient;

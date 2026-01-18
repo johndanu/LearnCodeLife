@@ -30,6 +30,11 @@ const AnalysisSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    labels: {
+        type: [String],
+        default: [],
+        index: true,
+    },
 }, {
     timestamps: true, // Adds createdAt and updatedAt automatically
 });
