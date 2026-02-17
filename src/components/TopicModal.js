@@ -131,7 +131,7 @@ export default function TopicModal({ topic, levelName, analysisId, language, fra
             onClick={onClose}
         >
             <div
-                className="bg-[hsl(var(--surface))] rounded-xl border border-[hsl(var(--secondary))] shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+                className="bg-[hsl(var(--surface))] rounded-xl border border-[hsl(var(--secondary))] shadow-xl max-w-2xl w-full h-[450px] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header - Fixed */}
@@ -179,28 +179,31 @@ export default function TopicModal({ topic, levelName, analysisId, language, fra
                 </div>
 
                 {/* Content - Scrollable */}
-                <div className="p-8 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
-                    {loading ? (
-                        <div className="text-center text-[hsl(var(--text-muted))] py-8">
-                            <div className="inline-block w-8 h-8 border-4 border-[hsl(var(--primary))] border-t-transparent rounded-full animate-spin mb-4"></div>
+                <div className="flex-1 overflow-y-auto p-6">
+                    {loading && (
+                        <div className="h-full flex flex-col items-center justify-center">
+                            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
                             <p>Loading explanation...</p>
                         </div>
-                    ) : error ? (
-                        <div className="text-center text-red-500 py-8">
+                    )}
+                    {!loading && error && (
+                        <div className="h-full flex items-center justify-center text-red-500">
                             <p>{error}</p>
                         </div>
-                    ) : (
-                        <div className="text-[hsl(var(--text-main))] text-[15px] leading-[1.7] whitespace-pre-wrap">
-                            {formatExplanation(explanation)}
+                    )} 
+                    {!loading && !error &&(
+                        <div className="text-[15px] leading-7">
+                            {explanation}
                         </div>
                     )}
+
                 </div>
 
                 {/* Footer - Fixed */}
                 <div className="p-6 border-t border-[hsl(var(--secondary))] flex justify-end flex-shrink-0">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 rounded-lg bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary-glow))] transition-colors shadow-sm active:scale-95"
+                        className="px-6 py-2 rounded-lg bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary-glow))] transition-all active:scale-95"
                     >
                         Close
                     </button>
