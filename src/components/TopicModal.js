@@ -193,7 +193,7 @@ export default function TopicModal({ topic, levelName, analysisId, language, fra
                     )} 
                     {!loading && !error &&(
                         <div className="text-[15px] leading-7">
-                            {explanation}
+                            {formatExplanation(explanation)} 
                         </div>
                     )}
 
@@ -211,4 +211,4 @@ export default function TopicModal({ topic, levelName, analysisId, language, fra
             </div>
         </div>
     );
-}
+} 
